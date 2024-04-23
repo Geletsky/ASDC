@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string>
 #include <iostream> 
+#include <string_view>
 
 struct Struct {
     std::string name;
@@ -17,7 +18,7 @@ struct BucketNode {
     BucketNode* next;
 };
 
-using HashFunc = size_t(*)(const std::string& key);
+using HashFunc = size_t(*)(std::string_view key);
 
 struct AssociativeArray {
     BucketNode** buckets;
@@ -31,13 +32,13 @@ struct AddOrGetElemResult {
     bool added;
 };
 
-size_t calculateKeyIndex(AssociativeArray* arr, const std::string& key) {
+size_t calculateKeyIndex(AssociativeArray* arr, std::string_view key) {
     size_t hash = arr->hashFunc(key);
     size_t index = hash % arr->capacity;
     return index;
 }
 
-AddOrGetElemResult modifyOrFetchElem(AssociativeArray* arr, const std::string& key) {
+AddOrGetElemResult modifyOrFetchElem(AssociativeArray* arr, std::string_view key) {
     size_t index = calculateKeyIndex(arr, key);
     BucketNode** curNode = &arr->buckets[index];
     while (true) {
@@ -59,7 +60,7 @@ AddOrGetElemResult modifyOrFetchElem(AssociativeArray* arr, const std::string& k
     }
 }
 
-Struct* findElem(AssociativeArray* arr, const std::string& key) {
+Struct* findElem(AssociativeArray* arr, std::string_view key) {
     size_t index = calculateKeyIndex(arr, key);
     BucketNode* curNode = arr->buckets[index];
     while (curNode != nullptr) {
@@ -69,7 +70,7 @@ Struct* findElem(AssociativeArray* arr, const std::string& key) {
     return nullptr;
 }
 
-size_t simpleHashFunc(const std::string& key) {
+size_t simpleHashFunc(std::string_view key) {
     if (key.empty()) return 0;
     uint8_t firstLetter = key[0];
     uint8_t positionInAlphabet = firstLetter - static_cast<uint8_t>('a');
@@ -86,7 +87,7 @@ AssociativeArray establishHashTable(int capacity, HashFunc func) {
     return arr;
 }
 
-bool eradicateNodeByKey(AssociativeArray* arr, const std::string& key) {
+bool eradicateNodeByKey(AssociativeArray* arr, std::string_view key) {
     size_t index = calculateKeyIndex(arr, key);
     BucketNode** tempNodeForRemoval = &arr->buckets[index];
     while (*tempNodeForRemoval != nullptr) {
@@ -101,8 +102,9 @@ bool eradicateNodeByKey(AssociativeArray* arr, const std::string& key) {
     return false;
 }
 
-void liberateAssociativeArray(AssociativeArray* arr) {
-    if (arr == nullptr || arr->countOfBucketNodes == 0 || arr->buckets == nullptr) return;
+void freeAssociativeArray(AssociativeArray* arr) {
+    assert(arr);
+    if (arr->countOfBucketNodes == 0 || arr->buckets == nullptr) return;
     for (int i = 0; i < arr->capacity; ++i) {
         BucketNode* curNode = arr->buckets[i];
         while (curNode != nullptr) {
@@ -153,6 +155,6 @@ int main() {
         data->printInfo();
         eradicateNodeByKey(&arr, "emma");
     }
-    liberateAssociativeArray(&arr);
+    freeAssociativeArray(&arr);
     return 0;
 }
