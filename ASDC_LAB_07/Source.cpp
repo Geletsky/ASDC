@@ -1,164 +1,132 @@
 #include <iostream>
 #include <vector>
 #include <span>
+#include <chrono>
 
-// Пример структуры из второй лабораторной работы
-struct MyStruct {
-	int value;
-	// Другие поля, методы и т.д.
+using namespace std;
+
+struct Data {
+    int key;
+    string value;
 };
 
-// Функция сравнения элементов для сортировки
-bool compare(const MyStruct& a, const MyStruct& b) {
-	return a.value < b.value;
+bool compare(const Data& a, const Data& b) {
+    return a.key < b.key;
 }
 
-// Bubble Sort
-template<typename T>
-void bubbleSort(std::span<T> arr) {
-	size_t n = arr.size();
-	for (int i = 0; i < n - 1; ++i) {
-		for (int j = 0; j < n - i - 1; ++j) {
-			if (compare(arr[j], arr[j + 1])) {
-				std::swap(arr[j], arr[j + 1]);
-			}
-		}
-	}
+void bubbleSort(span<Data> arr, int& comparisons, int& swaps) {
+    int n = arr.size();
+    comparisons = 0;
+    swaps = 0;
+
+    auto start = chrono::steady_clock::now();
+
+    for (int i = 0; i < n - 1; ++i) {
+        for (int j = 0; j < n - i - 1; ++j) {
+            ++comparisons;
+            if (compare(arr[j + 1], arr[j])) {
+                swap(arr[j], arr[j + 1]);
+                ++swaps;
+            }
+        }
+    }
+
+    auto end = chrono::steady_clock::now();
+    chrono::duration<double> elapsed_seconds = end - start;
+    cout << "Bubble Sort: Time taken: " << elapsed_seconds.count() << " seconds\n";
 }
 
-// Insertion Sort
-template<typename T>
-void insertionSort(std::span<T> arr) {
-	size_t n = arr.size();
-	for (int i = 1; i < n; ++i) {
-		T key = std::move(arr[i]);
-		int j = i - 1;
-		while (j >= 0 && compare(key, arr[j])) {
-			arr[j + 1] = arr[j];
-			--j;
-		}
-		arr[j + 1] = key;
-	}
+void insertionSort(span<Data> arr, int& comparisons, int& swaps) {
+    int n = arr.size();
+    comparisons = 0;
+    swaps = 0;
+
+    auto start = chrono::steady_clock::now();
+
+    for (int i = 1; i < n; ++i) {
+        Data key = arr[i];
+        int j = i - 1;
+        while (j >= 0 && compare(key, arr[j])) {
+            ++comparisons;
+            arr[j + 1] = arr[j];
+            ++swaps;
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+
+    auto end = chrono::steady_clock::now();
+    chrono::duration<double> elapsed_seconds = end - start;
+    cout << "Insertion Sort: Time taken: " << elapsed_seconds.count() << " seconds\n";
 }
 
-// Selection Sort
-template<typename T>
-void selectionSort(std::span<T> arr) {
-	size_t n = arr.size();
-	for (int i = 0; i < n - 1; ++i) {
-		int min_index = i;
-		for (int j = i + 1; j < n; ++j) {
-			if (compare(arr[j], arr[min_index])) {
-				min_index = j;
-			}
-		}
-		if (min_index != i) {
-			std::swap(arr[i], arr[min_index]);
-		}
-	}
+void selectionSort(span<Data> arr, int& comparisons, int& swaps) {
+    int n = arr.size();
+    comparisons = 0;
+    swaps = 0;
+
+    auto start = chrono::steady_clock::now();
+
+    for (int i = 0; i < n - 1; ++i) {
+        int min_idx = i;
+        for (int j = i + 1; j < n; ++j) {
+            ++comparisons;
+            if (compare(arr[j], arr[min_idx])) {
+                min_idx = j;
+            }
+        }
+        swap(arr[min_idx], arr[i]);
+        ++swaps;
+    }
+
+    auto end = chrono::steady_clock::now();
+    chrono::duration<double> elapsed_seconds = end - start;
+    cout << "Selection Sort: Time taken: " << elapsed_seconds.count() << " seconds\n";
 }
 
-// Shell Sort
-template<typename T>
-void shellSort(std::span<T> arr) {
-	int n = static_cast<int>(arr.size());
-	for (int gap = n / 2; gap > 0; gap /= 2) {
-		for (int i = gap; i < n; ++i) {
-			T temp = std::move(arr[i]);
-			int j;
-			for (j = i; j >= gap && compare(temp, arr[j - gap]); j -= gap) {
-				arr[j] = arr[j - gap];
-			}
-			arr[j] = temp;
-		}
-	}
+void shellSort(span<Data> arr, int& comparisons, int& swaps) {
+    int n = arr.size();
+    comparisons = 0;
+    swaps = 0;
+
+    auto start = chrono::steady_clock::now();
+
+    for (int gap = n / 2; gap > 0; gap /= 2) {
+        for (int i = gap; i < n; ++i) {
+            Data temp = arr[i];
+            int j;
+            for (j = i; j >= gap && compare(arr[j - gap], temp); j -= gap) {
+                ++comparisons;
+                arr[j] = arr[j - gap];
+                ++swaps;
+            }
+            arr[j] = temp;
+        }
+    }
+
+    auto end = chrono::steady_clock::now();
+    chrono::duration<double> elapsed_seconds = end - start;
+    cout << "Shell Sort: Time taken: " << elapsed_seconds.count() << " seconds\n";
 }
-
-// Heap Sort
-template<typename T>
-void heapify(std::vector<T>& arr, int n, int i) {
-	int largest = i;
-	int left = 2 * i + 1;
-	int right = 2 * i + 2;
-	if (left < n && compare(arr[largest], arr[left])) {
-		largest = left;
-	}
-	if (right < n&& compare(arr[largest], arr[right])) {
-		largest = right;
-	}
-	if (largest != i) {
-		std::swap(arr[i], arr[largest]);
-		heapify(arr, n, largest);
-	}
-}
-
-template<typename T>
-void heapSort(std::span<T> arr) {
-	int n = static_cast<int>(arr.size());
-	std::vector<T> temp(arr.begin(), arr.end());
-	for (int i = n / 2 - 1; i >= 0; --i) {
-		heapify(temp, n, i);
-	}
-	for (int i = n - 1; i > 0; --i) {
-		std::swap(temp[0], temp[i]);
-		heapify(temp, i, 0);
-	}
-	std::copy(temp.begin(), temp.end(), arr.begin());
-}
-
-
-// Quick Sort
-
-template<typename T>
-void qsort(std::span<T> arr) {
-	int low = 0;
-	int high = static_cast<int>(arr.size()) - 1;
-	qsortImpl(arr, low, high);
-}
-
-template<typename T>
-void qsortImpl(std::span<T> arr, int b, int e) {
-	int l = b, r = e;
-	auto piv = arr[(l + r) / 2];
-
-	while (l <= r) {
-		while (compare(arr[l],piv))
-			l++;
-		while (compare(piv,arr[r]))
-			r--;
-		if (l <= r) {
-			std::swap(arr[l], arr[r]);
-			l++;
-			r--;
-		}
-	}
-	if (b < r)
-		qsortImpl(arr, b, r);
-	if (e > l)
-		qsortImpl(arr, l, e);
-}
-
-
-
-
 
 int main() {
-	std::vector<MyStruct> numberArr = { {5}, {1}, {8}, {3}, {9}, {2}, {7} };
-	std::span<MyStruct> arr{ numberArr };
+    vector<Data> data = { {5, "five"}, {2, "two"}, {9, "nine"}, {1, "one"}, {5, "five"}, {6, "six"} };
+    int comparisons, swaps;
 
-	// Пример вызова функций сортировки
-	bubbleSort(arr);
-	insertionSort(arr);
-	selectionSort(arr);
-	shellSort(arr);
-	heapSort(arr);
-	qsort(arr);
+    bubbleSort(data, comparisons, swaps);
+    cout << "Comparisons: " << comparisons << ", Swaps: " << swaps << "\n\n";
 
-	// Вывод отсортированного массива
-	for (const auto& elem : arr) {
-		std::cout << elem.value << " ";
-	}
-	std::cout << std::endl;
+    constexpr int num_runs = 5;
+    double total_time = 0;
 
-	return 0;
+    for (int i = 0; i < num_runs; ++i) {
+        vector<Data> data_copy = data;
+        bubbleSort(data_copy, comparisons, swaps);
+        total_time += elapsed_seconds.count();
+    }
+
+    cout << "Total time for Bubble Sort: " << total_time << " seconds\n";
+    cout << "Average time for Bubble Sort: " << total_time / num_runs << " seconds\n";
+
+    return 0;
 }
