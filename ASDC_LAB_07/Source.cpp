@@ -16,7 +16,7 @@ bool compare(const Data& a, const Data& b) {
 }
 
 template<typename Func>
-double measureTime(Func func, span<Data> arr, int& comparisons, int& swaps) {
+double measureTime(Func& func, span<Data> arr, int& comparisons, int& swaps) {
     int n = arr.size();
     comparisons = 0;
     swaps = 0;
@@ -94,6 +94,37 @@ void shellSort(span<Data> arr, int& comparisons, int& swaps) {
     }
 }
 
+void heapify(span<Data> arr, int n, int i, int& comparisons, int& swaps) {
+    int largest = i;
+    int left = 2 * i + 1;
+    int right = 2 * i + 2;
+
+    if (left < n && compare(arr[left], arr[largest]))
+        largest = left;
+
+    if (right < n&& compare(arr[right], arr[largest]))
+        largest = right;
+
+    if (largest != i) {
+        swap(arr[i], arr[largest]);
+        ++swaps;
+        heapify(arr, n, largest, comparisons, swaps);
+    }
+}
+
+void heapSort(span<Data> arr, int& comparisons, int& swaps) {
+    int n = arr.size();
+
+    for (int i = n / 2 - 1; i >= 0; --i)
+        heapify(arr, n, i, comparisons, swaps);
+
+    for (int i = n - 1; i > 0; --i) {
+        swap(arr[0], arr[i]);
+        ++swaps;
+        heapify(arr, i, 0, comparisons, swaps);
+    }
+}
+
 int main() {
     vector<Data> data = { {5, "five"}, {2, "two"}, {9, "nine"}, {1, "one"}, {5, "five"}, {6, "six"} };
     int comparisons, swaps;
@@ -109,6 +140,9 @@ int main() {
 
     time_taken = measureTime(shellSort, data, comparisons, swaps);
     cout << "Shell Sort: Time taken: " << time_taken << " seconds\n";
+
+    time_taken = measureTime(heapSort, data, comparisons, swaps);
+    cout << "Heap Sort: Time taken: " << time_taken << " seconds\n";
 
     return 0;
 }
