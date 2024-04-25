@@ -68,10 +68,11 @@ struct LinkedList {
         return new_node;
     }
 
-    Node<T>* find(int value) {
+    template<typename Predicate>
+    Node<T>* find(const Predicate& pred) {
         Node<T>* current = head;
         while (current != nullptr) {
-            if (current->data == value) {
+            if (pred(current->data)) {
                 return current;
             }
             current = current->next;
@@ -136,6 +137,14 @@ int main() {
     list.remove(node1);
 
     list.assertNoCycles();
+
+    auto found_node = list.find([](const int& value) { return value == 2; });
+    if (found_node != nullptr) {
+        std::cout << "Found node with value 2.\n";
+    }
+    else {
+        std::cout << "Node with value 2 not found.\n";
+    }
 
     return 0;
 }
