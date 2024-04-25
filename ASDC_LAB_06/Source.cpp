@@ -1,160 +1,129 @@
-#include <assert.h>
+#include <iostream>
 #include <string>
-#include <iostream> 
-#include <string_view>
 
-struct Struct {
-    std::string name;
-    int age;
-
-    void printInfo() const {
-        std::cout << "Name: " << name << ", Age: " << age << std::endl;
-    }
+struct Data {
+    int key;
+    std::string value;
 };
 
-struct BucketNode {
+struct Node {
     std::string key;
-    Struct data;
-    BucketNode* next;
+    Data data;
+    Node* next;
 };
 
-using HashFunc = size_t(*)(std::string_view key);
+using HashFunc = size_t(*)(const std::string&);
 
-struct AssociativeArray {
-    BucketNode** buckets;
+struct HashTable {
+    Node** buckets;
     HashFunc hashFunc;
     int capacity;
-    int countOfBucketNodes;
 };
 
-struct AddOrGetElemResult {
-    Struct* data;
-    bool added;
-};
-
-size_t calculateKeyIndex(AssociativeArray* arr, std::string_view key) {
-    size_t hash = arr->hashFunc(key);
-    size_t index = hash % arr->capacity;
-    return index;
+size_t simpleHashFunc(const std::string& key) {
+    if (key.empty()) return 0;
+    return key[0] - 'a';
 }
 
-AddOrGetElemResult modifyOrFetchElem(AssociativeArray* arr, std::string_view key) {
-    size_t index = calculateKeyIndex(arr, key);
-    BucketNode** curNode = &arr->buckets[index];
-    while (true) {
-        if ((*curNode) == nullptr) {
-            BucketNode* node = new BucketNode;
-            node->key = key;
-            node->next = nullptr;
-            *curNode = node;
-            arr->countOfBucketNodes++;
+HashTable createHashTable(int capacity, HashFunc func) {
+    HashTable table;
+    table.buckets = new Node * [capacity]();
+    table.hashFunc = func;
+    table.capacity = capacity;
+    return table;
+}
 
-            return { &node->data, true };
+void addOrUpdate(HashTable& table, const std::string& key, const Data& data) {
+    size_t index = table.hashFunc(key) % table.capacity;
+    Node* newNode = new Node{ key, data, nullptr };
+    if (table.buckets[index] == nullptr) {
+        table.buckets[index] = newNode;
+    }
+    else {
+        Node* current = table.buckets[index];
+        while (current->next != nullptr && current->key != key) {
+            current = current->next;
         }
-        else if ((*curNode)->key == key) {
-            Struct* dataAddress = &(*curNode)->data;
-            arr->countOfBucketNodes++;
-            return { dataAddress,false };
+        if (current->key == key) {
+            current->data = data;
+            delete newNode;
         }
-        else curNode = &(*curNode)->next;
+        else {
+            current->next = newNode;
+        }
     }
 }
 
-Struct* findElem(AssociativeArray* arr, std::string_view key) {
-    size_t index = calculateKeyIndex(arr, key);
-    BucketNode* curNode = arr->buckets[index];
-    while (curNode != nullptr) {
-        if (curNode->key == key) return &curNode->data;
-        curNode = curNode->next;
+Data* find(HashTable& table, const std::string& key) {
+    size_t index = table.hashFunc(key) % table.capacity;
+    Node* current = table.buckets[index];
+    while (current != nullptr) {
+        if (current->key == key) {
+            return &current->data;
+        }
+        current = current->next;
     }
     return nullptr;
 }
 
-size_t simpleHashFunc(std::string_view key) {
-    if (key.empty()) return 0;
-    uint8_t firstLetter = key[0];
-    uint8_t positionInAlphabet = firstLetter - static_cast<uint8_t>('a');
-    return static_cast<size_t>(positionInAlphabet);
+void remove(HashTable& table, const std::string& key) {
+    size_t index = table.hashFunc(key) % table.capacity;
+    Node* current = table.buckets[index];
+    Node* prev = nullptr;
+    while (current != nullptr) {
+        if (current->key == key) {
+            if (prev == nullptr) {
+                table.buckets[index] = current->next;
+            }
+            else {
+                prev->next = current->next;
+            }
+            delete current;
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
 }
 
-AssociativeArray establishHashTable(int capacity, HashFunc func) {
-    AssociativeArray arr;
-    arr.buckets = new BucketNode * [capacity];
-    for (int i = 0; i < capacity; i++) arr.buckets[i] = nullptr;
-    arr.hashFunc = func;
-    arr.capacity = capacity;
-    arr.countOfBucketNodes = 0;
-    return arr;
-}
-
-bool eradicateNodeByKey(AssociativeArray* arr, std::string_view key) {
-    size_t index = calculateKeyIndex(arr, key);
-    BucketNode** tempNodeForRemoval = &arr->buckets[index];
-    while (*tempNodeForRemoval != nullptr) {
-        if ((*tempNodeForRemoval)->key == key) {
-            BucketNode* temp = *tempNodeForRemoval;
-            *tempNodeForRemoval = (*tempNodeForRemoval)->next;
+void freeHashTable(HashTable& table) {
+    for (int i = 0; i < table.capacity; ++i) {
+        Node* current = table.buckets[i];
+        while (current != nullptr) {
+            Node* temp = current;
+            current = current->next;
             delete temp;
-            return true;
-        }
-        tempNodeForRemoval = &(*tempNodeForRemoval)->next;
-    }
-    return false;
-}
-
-void freeAssociativeArray(AssociativeArray* arr) {
-    assert(arr);
-    if (arr->countOfBucketNodes == 0 || arr->buckets == nullptr) return;
-    for (int i = 0; i < arr->capacity; ++i) {
-        BucketNode* curNode = arr->buckets[i];
-        while (curNode != nullptr) {
-            BucketNode* nodeToDelete = curNode;
-            curNode = curNode->next;
-            delete nodeToDelete;
         }
     }
-    delete[] arr->buckets;
-    arr->buckets = nullptr;
+    delete[] table.buckets;
 }
 
 int main() {
-    AssociativeArray arr = establishHashTable(15, simpleHashFunc);
-    {
-        AddOrGetElemResult result = modifyOrFetchElem(&arr, "alex");
-        assert(result.added == true);
-        result.data->name = "Alex Johnson";
-        result.data->age = 28;
+    HashTable table = createHashTable(15, simpleHashFunc);
+
+    addOrUpdate(table, "apple", { 1, "Red fruit" });
+    addOrUpdate(table, "banana", { 2, "Yellow fruit" });
+    addOrUpdate(table, "carrot", { 3, "Orange vegetable" });
+    addOrUpdate(table, "tomato", { 4, "Red vegetable" });
+    addOrUpdate(table, "cucumber", { 5, "Green vegetable" });
+
+    Data* data = find(table, "banana");
+    if (data) {
+        std::cout << "Data found: Key = " << data->key << ", Value = " << data->value << std::endl;
     }
-    {
-        AddOrGetElemResult result = modifyOrFetchElem(&arr, "sophia");
-        assert(result.added == true);
-        result.data->name = "Sophia Brown";
-        result.data->age = 32;
+    else {
+        std::cout << "Data not found." << std::endl;
     }
-    {
-        AddOrGetElemResult result = modifyOrFetchElem(&arr, "michael");
-        assert(result.added == true);
-        result.data->name = "Michael Davis";
-        result.data->age = 37;
+
+    remove(table, "carrot");
+
+    data = find(table, "carrot");
+    if (data) {
+        std::cout << "Data found: Key = " << data->key << ", Value = " << data->value << std::endl;
     }
-    {
-        AddOrGetElemResult result = modifyOrFetchElem(&arr, "emma");
-        assert(result.added == true);
-        result.data->name = "Emma Garcia";
-        result.data->age = 41;
+    else {
+        std::cout << "Data not found." << std::endl;
     }
-    {
-        AddOrGetElemResult result = modifyOrFetchElem(&arr, "william");
-        assert(result.added == true);
-        result.data->name = "William Martinez";
-        result.data->age = 46;
-    }
-    {
-        Struct* data = findElem(&arr, "alex");
-        assert(data != nullptr);
-        data->printInfo();
-        eradicateNodeByKey(&arr, "emma");
-    }
-    freeAssociativeArray(&arr);
-    return 0;
+
+    freeHashTable(table);
 }
