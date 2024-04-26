@@ -1,8 +1,8 @@
+#include <cassert>
 #include <iostream>
 #include <vector>
 #include <span>
 #include <chrono>
-#include <functional>
 
 using namespace std;
 
@@ -16,7 +16,17 @@ struct Sort {
     int swaps = 0;
 };
 
+int convertSizetToInt(size_t s)
+{
+    int i = 0;
+    i = ~i;
+    i = i ^ (1 << 31);
 
+    size_t mask = static_cast<size_t>(i);
+    assert(s <= mask);
+
+    return static_cast<int>(s);
+}
 
 bool compare(const Data& a, const Data& b) {
     return a.key < b.key;
@@ -24,7 +34,6 @@ bool compare(const Data& a, const Data& b) {
 
 template<typename Func>
 double measureTime(Func& func, span<Data> arr, Sort& sort) {
-    int n = arr.size();
     sort = {};
 
     auto start = chrono::steady_clock::now();
@@ -131,34 +140,25 @@ void heapSort(span<Data> arr, Sort& sort) {
     }
 }
 
-int main() {
+
+template<typename Func>
+void runAlgorithm(Func func, std::string_view algoName)
+{
     vector<Data> data = { {5, "five"}, {2, "two"}, {9, "nine"}, {1, "one"}, {5, "five"}, {6, "six"} };
     Sort sort;
-
     double time_taken = measureTime(bubbleSort, data, sort);
-    cout << "Bubble Sort: Time taken: " << time_taken << " seconds\n";
+    cout << algoName << ": Time taken: " << time_taken << " seconds\n";
     cout << "Comparisons: " << sort.comparisons << "\n";
     cout << "Swaps: " << sort.swaps << "\n";
+}
 
-    time_taken = measureTime(insertionSort, data, sort);
-    cout << "Insertion Sort: Time taken: " << time_taken << " seconds\n";
-    cout << "Comparisons: " << sort.comparisons << "\n";
-    cout << "Swaps: " << sort.swaps << "\n";
+int main() {
 
-    time_taken = measureTime(selectionSort, data, sort);
-    cout << "Selection Sort: Time taken: " << time_taken << " seconds\n";
-    cout << "Comparisons: " << sort.comparisons << "\n";
-    cout << "Swaps: " << sort.swaps << "\n";
-
-    time_taken = measureTime(shellSort, data, sort);
-    cout << "Shell Sort: Time taken: " << time_taken << " seconds\n";
-    cout << "Comparisons: " << sort.comparisons << "\n";
-    cout << "Swaps: " << sort.swaps << "\n";
-
-    time_taken = measureTime(heapSort, data, sort);
-    cout << "Heap Sort: Time taken: " << time_taken << " seconds\n";
-    cout << "Comparisons: " << sort.comparisons << "\n";
-    cout << "Swaps: " << sort.swaps << "\n";
+    runAlgorithm(bubbleSort, "Bubble Sort");
+    runAlgorithm(insertionSort, "Insertion Sort");
+    runAlgorithm(selectionSort, "Selection Sort");
+    runAlgorithm(shellSort, "Shell Sort");
+    runAlgorithm(shellSort, "Heap Sort");
 
     return 0;
 }
